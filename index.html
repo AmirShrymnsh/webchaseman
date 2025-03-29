@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pacman Multiplayer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        .container {
+            margin: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+        }
+        .hidden {
+            display: none;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f0f0f0;
+        }
+        button {
+            margin: 5px;
+            padding: 10px;
+            cursor: pointer;
+        }
+        #gameScreen {
+            width: 600px;
+            height: 600px;
+            border: 2px solid #000;
+            position: relative;
+            background: #111;
+        }
+        .player {
+            width: 20px;
+            height: 20px;
+            position: absolute;
+            border-radius: 50%;
+        }
+        .runner {
+            background: yellow;
+        }
+        .chaser {
+            background: red;
+        }
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: white;
+            position: absolute;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Setup Screen -->
+        <div id="setupScreen">
+            <div id="menu">
+                <h2>Pacman Multiplayer</h2>
+                <div id="createRoomSection">
+                    <button onclick="createRoom()">Create New Room</button>
+                </div>
+                <div id="joinRoomSection">
+                    <input type="text" id="roomCode" placeholder="Enter Room Code">
+                    <button onclick="joinRoom()">Join Room</button>
+                </div>
+            </div>
+
+            <div id="roomInfo" class="status hidden">
+                <h3>Room Information</h3>
+                <p id="roomCodeDisplay"></p>
+                <p id="playerCount"></p>
+            </div>
+
+            <div id="roleSelection" class="hidden">
+                <h3>Choose Your Role</h3>
+                <button onclick="chooseRole('runner')">Be Runner</button>
+                <button onclick="chooseRole('chaser')">Be Chaser</button>
+            </div>
+
+            <div id="startGame" class="hidden">
+                <button onclick="readyToStart()">Ready to Start!</button>
+            </div>
+
+            <div id="gameStatus" class="status">
+                <h3>Game Status</h3>
+                <p id="statusText"></p>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="gameScreen" class="hidden">
+            <!-- Game elements will be added here dynamically -->
+        </div>
+
+        <div id="debug" class="status">
+            <h3>Debug Information</h3>
+            <pre id="debugText"></pre>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let currentRoom = null;
+        let playerId = null;
+        let currentRole = null;
+        let gameState = null;
+
+        // Update UI helper function
+        function updateStatus(message) {
+            document.getElementById('statusText').textContent = message;
+            console.log('Status updated:', message);
+        }
+
+        // Socket event handlers
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            updateStatus('Connected to server');
+        });
+
+        socket.on('room_created', (data) => {
+            console.log('Room created event received:', data);
+            currentRoom = data.room_code;
+            playerId = data.player_id;
+            
+            document.getElementById('roomInfo').classList.remove('hidden');
+            document.getElementById('roomCodeDisplay').textContent = `Room Code: ${data.room_code}`;
+            document.getElementById('roleSelection').classList.remove('hidden');
+            document.getElementById('debugText').textContent = JSON.stringify(data.game_state, null, 2);
+            document.getElementById('createRoomSection').classList.add('hidden');
+            updateStatus('Waiting for player 2 to join...');
+        });
+
+        socket.on('room_joined', (data) => {
+            console.log('Room joined:', data);
+            playerId = data.player_id;
+            gameState = data.game_state;
+            
+            document.getElementById('joinRoomSection').classList.add('hidden');
+            document.getElementById('roomInfo').classList.remove('hidden');
+            document.getElementById('roleSelection').classList.remove('hidden');
+            document.getElementById('debugText').textContent = JSON.stringify(data.game_state, null, 2);
+            updateStatus('Choose your role!');
+        });
+
+        socket.on('game_state', (data) => {
+            gameState = data;
+            document.getElementById('debugText').textContent = JSON.stringify(data, null, 2);
+            
+            const playerCount = Object.keys(data.players).length;
+            document.getElementById('playerCount').textContent = `Players in room: ${playerCount}/2`;
+            
+            if (currentRole && playerCount === 2) {
+                document.getElementById('startGame').classList.remove('hidden');
+            }
+
+            if (data.game_started) {
+                startGame();
+            }
+        });
+
+        socket.on('game_started', (data) => {
+            gameState = data;
+            startGame();
+        });
+
+        socket.on('waiting_for_players', (data) => {
+            updateStatus(`Waiting for players... ${data.ready_count}/${data.total_needed} ready`);
+        });
+
+        socket.on('room_error', (data) => {
+            console.error('Room error:', data);
+            alert(data.message);
+            updateStatus(`Error: ${data.message}`);
+        });
+
+        socket.on('role_error', (data) => {
+            console.error('Role error:', data);
+            alert(data.message);
+            updateStatus(`Error: ${data.message}`);
+        });
+
+        socket.on('game_over', (data) => {
+            console.log('Game over:', data);
+            alert(`Game Over! ${data.winner} wins!`);
+            updateStatus(`Game Over! ${data.winner} wins!`);
+        });
+
+        socket.on('player_disconnected', () => {
+            console.log('Other player disconnected');
+            updateStatus('Other player disconnected');
+        });
+
+        // Button click handlers
+        function createRoom() {
+            console.log('Emitting create_room event');
+            socket.emit('create_room');
+            updateStatus('Creating room...');
+        }
+
+        function joinRoom() {
+            const code = document.getElementById('roomCode').value.trim();
+            if (!code) {
+                alert('Please enter a room code');
+                return;
+            }
+            console.log('Joining room:', code);
+            currentRoom = code;
+            socket.emit('join_room', { room_code: code });
+            updateStatus('Joining room...');
+        }
+
+        function chooseRole(role) {
+            currentRole = role;
+            socket.emit('choose_role', { room_code: currentRoom, role: role });
+            updateStatus(`Selected role: ${role}`);
+            
+            // Show start button if both players are present
+            if (gameState && Object.keys(gameState.players).length === 2) {
+                document.getElementById('startGame').classList.remove('hidden');
+            }
+        }
+
+        function readyToStart() {
+            socket.emit('ready_to_start', { room_code: currentRoom });
+            updateStatus('Waiting for other player...');
+            document.getElementById('startGame').classList.add('hidden');
+        }
+
+        function startGame() {
+            document.getElementById('setupScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            initializeGame();
+        }
+
+        function initializeGame() {
+            const gameScreen = document.getElementById('gameScreen');
+            gameScreen.innerHTML = ''; // Clear existing elements
+            
+            // Add dots
+            gameState.dots.forEach(dot => {
+                const dotElement = document.createElement('div');
+                dotElement.className = 'dot';
+                dotElement.style.left = `${(dot.x * 30) + 7}px`;
+                dotElement.style.top = `${(dot.y * 30) + 7}px`;
+                gameScreen.appendChild(dotElement);
+            });
+
+            // Add players
+            Object.entries(gameState.players).forEach(([id, player]) => {
+                const playerElement = document.createElement('div');
+                playerElement.className = `player ${player.role}`;
+                playerElement.style.left = `${player.x * 30}px`;
+                playerElement.style.top = `${player.y * 30}px`;
+                gameScreen.appendChild(playerElement);
+            });
+        }
+
+        // Add keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (!gameState?.game_started) return;
+
+            const player = gameState.players[playerId];
+            let newX = player.x;
+            let newY = player.y;
+
+            switch(e.key) {
+                case 'ArrowUp':
+                    newY = Math.max(0, player.y - 1);
+                    break;
+                case 'ArrowDown':
+                    newY = Math.min(gameState.grid_size.height - 1, player.y + 1);
+                    break;
+                case 'ArrowLeft':
+                    newX = Math.max(0, player.x - 1);
+                    break;
+                case 'ArrowRight':
+                    newX = Math.min(gameState.grid_size.width - 1, player.x + 1);
+                    break;
+            }
+
+            if (newX !== player.x || newY !== player.y) {
+                socket.emit('update_position', {
+                    room_code: currentRoom,
+                    x: newX,
+                    y: newY
+                });
+            }
+        });
+
+        // Add error handling
+        socket.on('connect_error', (error) => {
+            console.error('Connection error:', error);
+            updateStatus('Connection error!');
+        });
+
+        socket.on('error', (error) => {
+            console.error('Socket error:', error);
+            updateStatus('Socket error!');
+        });
+    </script>
+</body>
+</html> 
