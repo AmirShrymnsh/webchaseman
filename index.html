@@ -22,31 +22,204 @@
             padding: 10px;
             cursor: pointer;
         }
+        .game-container {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            background: #1a1a1a;
+            border-radius: 15px;
+        }
         #gameScreen {
             width: 600px;
             height: 600px;
-            border: 2px solid #000;
+            border: 3px solid #333;
             position: relative;
-            background: #111;
+            background: linear-gradient(rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.9)),
+                        repeating-linear-gradient(
+                            0deg,
+                            transparent,
+                            transparent 29px,
+                            #222 29px,
+                            #222 30px
+                        ),
+                        repeating-linear-gradient(
+                            90deg,
+                            transparent,
+                            transparent 29px,
+                            #222 29px,
+                            #222 30px
+                        );
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
         }
         .player {
             width: 20px;
             height: 20px;
             position: absolute;
-            border-radius: 50%;
+            transition: all 0.15s ease;
         }
         .runner {
-            background: yellow;
+            background: #ffd700;
+            border-radius: 50%;
+            box-shadow: 0 0 15px #ffd700;
+            animation: pulse 1s infinite;
         }
         .chaser {
-            background: red;
+            background: #ff4444;
+            border-radius: 50%;
+            box-shadow: 0 0 15px #ff4444;
+            animation: pulse 1.2s infinite;
         }
         .dot {
-            width: 6px;
-            height: 6px;
-            background: white;
+            width: 8px;
+            height: 8px;
+            background: #fff;
             position: absolute;
             border-radius: 50%;
+            box-shadow: 0 0 8px #fff;
+            animation: twinkle 1.5s infinite;
+        }
+        .obstacle {
+            width: 24px;
+            height: 24px;
+            background: #800080;
+            position: absolute;
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+            box-shadow: 0 0 15px #800080;
+            animation: rotate 3s linear infinite;
+        }
+        .powerup {
+            width: 18px;
+            height: 18px;
+            position: absolute;
+            border-radius: 4px;
+            animation: float 2s ease-in-out infinite;
+        }
+        .powerup.health {
+            background: #2ecc71;
+            box-shadow: 0 0 15px #2ecc71;
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+        }
+        .powerup.speed {
+            background: #3498db;
+            box-shadow: 0 0 15px #3498db;
+            clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+        }
+        .powerup.shield {
+            background: #f1c40f;
+            box-shadow: 0 0 15px #f1c40f;
+            clip-path: polygon(0% 0%, 100% 0%, 100% 75%, 50% 100%, 0% 75%);
+        }
+        .health-bar {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            gap: 5px;
+        }
+        .health-point {
+            width: 20px;
+            height: 20px;
+            background: red;
+            border-radius: 50%;
+        }
+        .health-display {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+            font-size: 18px;
+            border: 2px solid #333;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+        .legend {
+            width: 250px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 10px;
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+            border: 2px solid #333;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+        .legend h3 {
+            color: #3498db;
+            text-align: center;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        .legend-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+        .legend-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 15px;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        @keyframes twinkle {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0px); }
+        }
+        .game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            color: #fff;
+            border: 3px solid #333;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+        .game-over h2 {
+            color: #3498db;
+            margin-bottom: 20px;
+        }
+        .game-over button {
+            background: #2ecc71;
+            border: none;
+            padding: 10px 20px;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .game-over button:hover {
+            background: #27ae60;
+            transform: scale(1.1);
         }
     </style>
 </head>
@@ -88,14 +261,50 @@
         </div>
 
         <!-- Game Screen -->
-        <div id="gameScreen" class="hidden">
-            <!-- Game elements will be added here dynamically -->
+        <div class="game-container">
+            <div id="gameScreen" class="hidden">
+                <div class="health-display">
+                    Health: <span id="healthCount">3</span>
+                </div>
+            </div>
+            
+            <div class="legend hidden" id="gameLegend">
+                <h3>Game Elements</h3>
+                <div class="legend-item">
+                    <div class="legend-icon dot"></div>
+                    <span>Dot - Collect all to win</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-icon obstacle"></div>
+                    <span>Obstacle - Deals 1 damage</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-icon powerup health"></div>
+                    <span>Health Powerup - +1 Health</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-icon powerup speed"></div>
+                    <span>Speed Boost - 2x Speed (10s)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-icon powerup shield"></div>
+                    <span>Shield - Temporary immunity</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-icon player runner"></div>
+                    <span>Runner - Collect dots</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-icon player chaser"></div>
+                    <span>Chaser - Catch the runner</span>
+                </div>
+            </div>
         </div>
 
         <div id="debug" class="status">
             <h3>Debug Information</h3>
             <pre id="debugText"></pre>
-        </div>
+    </div>
     </div>
 
     <script>
@@ -144,18 +353,7 @@
 
         socket.on('game_state', (data) => {
             gameState = data;
-            document.getElementById('debugText').textContent = JSON.stringify(data, null, 2);
-            
-            const playerCount = Object.keys(data.players).length;
-            document.getElementById('playerCount').textContent = `Players in room: ${playerCount}/2`;
-            
-            if (currentRole && playerCount === 2) {
-                document.getElementById('startGame').classList.remove('hidden');
-            }
-
-            if (data.game_started) {
-                startGame();
-            }
+            updateGameScreen();
         });
 
         socket.on('game_started', (data) => {
@@ -180,14 +378,30 @@
         });
 
         socket.on('game_over', (data) => {
-            console.log('Game over:', data);
-            alert(`Game Over! ${data.winner} wins!`);
-            updateStatus(`Game Over! ${data.winner} wins!`);
+            const gameOverScreen = document.createElement('div');
+            gameOverScreen.className = 'game-over';
+            gameOverScreen.innerHTML = `
+                <h2>Game Over!</h2>
+                <p>${data.winner.charAt(0).toUpperCase() + data.winner.slice(1)} Wins!</p>
+                <button onclick="location.reload()">Play Again</button>
+            `;
+            document.body.appendChild(gameOverScreen);
         });
 
         socket.on('player_disconnected', () => {
             console.log('Other player disconnected');
             updateStatus('Other player disconnected');
+        });
+
+        socket.on('health_update', (data) => {
+            console.log('Health update received:', data);
+            if (gameState.players[playerId].role === 'runner') {
+                updateHealthBar(data.health);
+            }
+        });
+
+        socket.on('powerup_collected', (data) => {
+            showPowerupEffect(data.type);
         });
 
         // Button click handlers
@@ -229,30 +443,140 @@
         function startGame() {
             document.getElementById('setupScreen').classList.add('hidden');
             document.getElementById('gameScreen').classList.remove('hidden');
+            document.getElementById('gameLegend').classList.remove('hidden');
             initializeGame();
         }
 
         function initializeGame() {
             const gameScreen = document.getElementById('gameScreen');
-            gameScreen.innerHTML = ''; // Clear existing elements
+            gameScreen.innerHTML = '';
             
+            // Add health bar
+            const healthBar = document.createElement('div');
+            healthBar.className = 'health-bar';
+            for (let i = 0; i < gameState.players[playerId].health; i++) {
+                const healthPoint = document.createElement('div');
+                healthPoint.className = 'health-point';
+                healthBar.appendChild(healthPoint);
+            }
+            gameScreen.appendChild(healthBar);
+            
+            // Add game elements
+            addGameElements(gameScreen);
+            
+            // Start game loop
+            gameLoop();
+        }
+
+        function addGameElements(gameScreen) {
             // Add dots
             gameState.dots.forEach(dot => {
                 const dotElement = document.createElement('div');
                 dotElement.className = 'dot';
-                dotElement.style.left = `${(dot.x * 30) + 7}px`;
-                dotElement.style.top = `${(dot.y * 30) + 7}px`;
+                dotElement.style.left = `${(dot.x * 30) + 12}px`;
+                dotElement.style.top = `${(dot.y * 30) + 12}px`;
                 gameScreen.appendChild(dotElement);
             });
-
+            
+            // Add obstacles
+            gameState.obstacles.forEach(obstacle => {
+                const obstacleElement = document.createElement('div');
+                obstacleElement.className = 'obstacle';
+                obstacleElement.style.left = `${obstacle.x * 30}px`;
+                obstacleElement.style.top = `${obstacle.y * 30}px`;
+                gameScreen.appendChild(obstacleElement);
+            });
+            
+            // Add powerups
+            gameState.powerups.forEach(powerup => {
+                const powerupElement = document.createElement('div');
+                powerupElement.className = `powerup ${powerup.type}`;
+                powerupElement.style.left = `${powerup.x * 30}px`;
+                powerupElement.style.top = `${powerup.y * 30}px`;
+                gameScreen.appendChild(powerupElement);
+            });
+            
             // Add players
             Object.entries(gameState.players).forEach(([id, player]) => {
                 const playerElement = document.createElement('div');
                 playerElement.className = `player ${player.role}`;
+                if (player.shield) {
+                    playerElement.style.boxShadow = '0 0 10px gold';
+                }
                 playerElement.style.left = `${player.x * 30}px`;
                 playerElement.style.top = `${player.y * 30}px`;
                 gameScreen.appendChild(playerElement);
             });
+        }
+
+        function gameLoop() {
+            if (!gameState.game_started) return;
+            
+            const player = gameState.players[playerId];
+            
+            // Check collisions
+            checkCollisions(player);
+            
+            // Update health bar
+            updateHealthBar(player.health);
+            
+            // Request next frame
+            requestAnimationFrame(gameLoop);
+        }
+
+        function checkCollisions(player) {
+            const x = player.x;
+            const y = player.y;
+            
+            // Check obstacle collisions
+            gameState.obstacles.forEach(obstacle => {
+                if (x === obstacle.x && y === obstacle.y) {
+                    if (player.role === 'runner') {
+                        player.health--;
+                        updateHealthBar(player.health);
+                        if (player.health <= 0) {
+                            socket.emit('game_over', {
+                                room_code: currentRoom,
+                                winner: 'chaser'
+                            });
+                        }
+                    }
+                }
+            });
+            
+            // Check powerup collisions
+            gameState.powerups.forEach((powerup, index) => {
+                if (x === powerup.x && y === powerup.y) {
+                    applyPowerup(powerup);
+                    gameState.powerups.splice(index, 1);
+                }
+            });
+        }
+
+        function applyPowerup(powerup) {
+            const player = gameState.players[playerId];
+            switch(powerup.type) {
+                case 'health':
+                    player.health = Math.min(player.health + 1, 3);
+                    updateHealthBar(player.health);
+                    break;
+                case 'speed':
+                    player.speed = 2;
+                    setTimeout(() => player.speed = 1, powerup.duration * 1000);
+                    break;
+                case 'shield':
+                    player.shield = true;
+                    setTimeout(() => player.shield = false, powerup.duration * 1000);
+                    break;
+            }
+        }
+
+        function updateHealthBar(health) {
+            console.log('Updating health to:', health);  // Debug log
+            const healthDisplay = document.querySelector('.health-display');
+            if (healthDisplay) {
+                healthDisplay.innerHTML = `Health: ${health}`;
+            }
         }
 
         // Add keyboard controls
@@ -262,19 +586,20 @@
             const player = gameState.players[playerId];
             let newX = player.x;
             let newY = player.y;
+            const speed = player.speed || 1;
 
             switch(e.key) {
                 case 'ArrowUp':
-                    newY = Math.max(0, player.y - 1);
+                    newY = Math.max(0, player.y - speed);
                     break;
                 case 'ArrowDown':
-                    newY = Math.min(gameState.grid_size.height - 1, player.y + 1);
+                    newY = Math.min(gameState.grid_size.height - 1, player.y + speed);
                     break;
                 case 'ArrowLeft':
-                    newX = Math.max(0, player.x - 1);
+                    newX = Math.max(0, player.x - speed);
                     break;
                 case 'ArrowRight':
-                    newX = Math.min(gameState.grid_size.width - 1, player.x + 1);
+                    newX = Math.min(gameState.grid_size.width - 1, player.x + speed);
                     break;
             }
 
@@ -297,6 +622,94 @@
             console.error('Socket error:', error);
             updateStatus('Socket error!');
         });
+
+        // Add powerup effect notifications
+        function showPowerupEffect(type) {
+            const notification = document.createElement('div');
+            notification.style.position = 'fixed';
+            notification.style.top = '60px';
+            notification.style.left = '20px';
+            notification.style.background = 'rgba(0,0,0,0.8)';
+            notification.style.color = 'white';
+            notification.style.padding = '15px';
+            notification.style.borderRadius = '10px';
+            notification.style.transition = 'all 0.3s ease';
+            notification.style.animation = 'slideIn 0.3s ease';
+            
+            switch(type) {
+                case 'health':
+                    notification.textContent = '❤️ Health restored!';
+                    notification.style.color = '#2ecc71';
+                    break;
+                case 'speed':
+                    notification.textContent = '⚡ Speed boost activated!';
+                    notification.style.color = '#3498db';
+                    break;
+                case 'shield':
+                    notification.textContent = '🛡️ Shield activated!';
+                    notification.style.color = '#f1c40f';
+                    break;
+            }
+            
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 2000);
+        }
+
+        function updateGameScreen() {
+            const gameScreen = document.getElementById('gameScreen');
+            gameScreen.innerHTML = '';
+            
+            // Add health display for runner only
+            const player = gameState.players[playerId];
+            if (player.role === 'runner') {
+                const healthDisplay = document.createElement('div');
+                healthDisplay.className = 'health-display';
+                healthDisplay.innerHTML = `Runner Health: ${player.health}`;
+                gameScreen.appendChild(healthDisplay);
+            }
+            
+            // Add dots
+            gameState.dots.forEach(dot => {
+                const dotElement = document.createElement('div');
+                dotElement.className = 'dot';
+                dotElement.style.left = `${(dot.x * 30) + 12}px`;
+                dotElement.style.top = `${(dot.y * 30) + 12}px`;
+                gameScreen.appendChild(dotElement);
+            });
+            
+            // Add obstacles
+            gameState.obstacles.forEach(obstacle => {
+                const obstacleElement = document.createElement('div');
+                obstacleElement.className = 'obstacle';
+                obstacleElement.style.left = `${obstacle.x * 30}px`;
+                obstacleElement.style.top = `${obstacle.y * 30}px`;
+                gameScreen.appendChild(obstacleElement);
+            });
+            
+            // Add powerups
+            gameState.powerups.forEach(powerup => {
+                const powerupElement = document.createElement('div');
+                powerupElement.className = `powerup ${powerup.type}`;
+                powerupElement.style.left = `${powerup.x * 30}px`;
+                powerupElement.style.top = `${powerup.y * 30}px`;
+                gameScreen.appendChild(powerupElement);
+            });
+            
+            // Add players
+            Object.entries(gameState.players).forEach(([id, player]) => {
+                const playerElement = document.createElement('div');
+                playerElement.className = `player ${player.role}`;
+                if (player.shield) {
+                    playerElement.style.boxShadow = '0 0 10px gold';
+                }
+                playerElement.style.left = `${player.x * 30}px`;
+                playerElement.style.top = `${player.y * 30}px`;
+                gameScreen.appendChild(playerElement);
+            });
+        }
     </script>
 </body>
 </html> 
