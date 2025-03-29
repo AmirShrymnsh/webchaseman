@@ -23,7 +23,7 @@ def create_game_state():
         'grid_size': {'width': 20, 'height': 20},
         'game_started': False,
         'player_count': 0,
-        'ready_players': []
+        'ready_players': []  # Changed from set() to list
     }
 
 def generate_game_elements(game_state):
@@ -73,33 +73,26 @@ def handle_connect():
 def handle_create_room():
     try:
         room_code = generate_room_code()
-        while room_code in rooms:
+        while room_code in rooms:  # Ensure unique room code
             room_code = generate_room_code()
         
-        game_state = create_game_state()
-        dots, obstacles, powerups = generate_game_elements(game_state)
-        game_state['dots'] = dots
-        game_state['obstacles'] = obstacles
-        game_state['powerups'] = powerups
-        
-        rooms[room_code] = game_state
+        rooms[room_code] = create_game_state()
         join_room(room_code)
-        
-        # Initialize player with health and speed
-        game_state['players'][request.sid] = {
-            'x': random.randint(0, game_state['grid_size']['width'] - 1),
-            'y': random.randint(0, game_state['grid_size']['height'] - 1),
+        rooms[room_code]['players'][request.sid] = {
+            'x': random.randint(0, rooms[room_code]['grid_size']['width'] - 1),
+            'y': random.randint(0, rooms[room_code]['grid_size']['height'] - 1),
             'role': None,
             'is_host': True,
             'health': 3,
             'speed': 1,
-            'powerups': []
+            'shield': False
         }
+        rooms[room_code]['player_count'] = 1
         
-        game_state['player_count'] = 1
+        print(f"Room created: {room_code}")
         emit('room_created', {
-            'room_code': room_code,
-            'game_state': game_state,
+            'room_code': room_code, 
+            'game_state': rooms[room_code],
             'player_id': request.sid
         })
     except Exception as e:
@@ -123,6 +116,7 @@ def handle_role_choice(data):
         if request.sid in rooms[room_code]['players']:
             player = rooms[room_code]['players'][request.sid]
             player['role'] = data['role']
+            
             # Set health based on role
             if data['role'] == 'runner':
                 player['health'] = 3  # Runner starts with 3 health
@@ -139,7 +133,7 @@ def handle_role_choice(data):
                 rooms[room_code]['dots'] = dots
                 rooms[room_code]['obstacles'] = obstacles
                 rooms[room_code]['powerups'] = powerups
-                print('Game started!')
+                print(f'Game started in room {room_code}!')
             
             emit('game_state', rooms[room_code], room=room_code)
     except Exception as e:
@@ -159,6 +153,39 @@ def handle_position_update(data):
             current_player['x'] = new_x
             current_player['y'] = new_y
             
+            if current_player['role'] == 'runner':
+                # Check for obstacle collision
+                for obstacle in game_state['obstacles']:
+                    if obstacle['x'] == new_x and obstacle['y'] == new_y:
+                        if not current_player.get('shield', False):
+                            print(f"Runner hit obstacle! Health before: {current_player['health']}")
+                            current_player['health'] -= 1
+                            print(f"Health after: {current_player['health']}")
+                            if current_player['health'] <= 0:
+                                emit('game_over', {'winner': 'chaser'}, room=room_code)
+                                return
+                            emit('health_update', {'health': current_player['health']}, room=room_code)
+
+                # Check for powerup collection
+                for powerup in game_state['powerups'][:]:
+                    if powerup['x'] == new_x and powerup['y'] == new_y:
+                        if powerup['type'] == 'health':
+                            current_player['health'] = min(current_player['health'] + 1, 3)
+                        elif powerup['type'] == 'speed':
+                            current_player['speed'] = 2
+                        elif powerup['type'] == 'shield':
+                            current_player['shield'] = True
+                        game_state['powerups'].remove(powerup)
+                        emit('powerup_collected', {'type': powerup['type']}, room=room_code)
+
+                # Check for dot collection
+                for dot in game_state['dots'][:]:
+                    if dot['x'] == new_x and dot['y'] == new_y:
+                        game_state['dots'].remove(dot)
+                        if len(game_state['dots']) == 0:
+                            emit('game_over', {'winner': 'runner'}, room=room_code)
+                            return
+
             # Check for runner-chaser collision
             for player_id, other_player in game_state['players'].items():
                 if player_id != request.sid:  # Different players
@@ -176,46 +203,9 @@ def handle_position_update(data):
                             if runner['health'] <= 0:
                                 emit('game_over', {'winner': 'chaser'}, room=room_code)
                                 return
-                            emit('health_update', {'player_id': runner['id'], 'health': runner['health']}, room=room_code)
+                            emit('health_update', {'health': runner['health']}, room=room_code)
 
-            if current_player['role'] == 'runner':
-                # Check for dot collection
-                for dot in game_state['dots'][:]:
-                    if dot['x'] == new_x and dot['y'] == new_y:
-                        game_state['dots'].remove(dot)
-                        if len(game_state['dots']) == 0:
-                            emit('game_over', {'winner': 'runner'}, room=room_code)
-                            return
-
-                # Check for powerup collection
-                for powerup in game_state['powerups'][:]:
-                    if powerup['x'] == new_x and powerup['y'] == new_y:
-                        print(f"Powerup collected: {powerup['type']}")  # Debug print
-                        if powerup['type'] == 'health':
-                            current_player['health'] = min(current_player['health'] + 1, 3)
-                        elif powerup['type'] == 'speed':
-                            current_player['speed'] = 2
-                        elif powerup['type'] == 'shield':
-                            current_player['shield'] = True
-                        game_state['powerups'].remove(powerup)
-                        emit('powerup_collected', {'type': powerup['type']}, room=room_code)
-
-                # Check for obstacle collision
-                for obstacle in game_state['obstacles']:
-                    if obstacle['x'] == new_x and obstacle['y'] == new_y:
-                        if not current_player.get('shield', False):
-                            print(f"Hit obstacle! Health: {current_player['health']}")  # Debug print
-                            current_player['health'] -= 1
-                            if current_player['health'] <= 0:
-                                emit('game_over', {'winner': 'chaser'}, room=room_code)
-                                return
-                            emit('health_update', {'health': current_player['health']}, room=room_code)
-
-            # Debug print
-            print(f"Current game state - Players:")
-            for pid, p in game_state['players'].items():
-                print(f"Player {pid}: Role={p['role']}, Health={p['health']}, Pos=({p['x']},{p['y']})")
-            
+            # Always emit updated game state
             emit('game_state', game_state, room=room_code)
             
     except Exception as e:
@@ -263,16 +253,26 @@ def handle_ready_to_start(data):
         room_code = data['room_code']
         if room_code in rooms:
             game_state = rooms[room_code]
+            
+            # Add player to ready list if not already there
             if request.sid not in game_state['ready_players']:
                 game_state['ready_players'].append(request.sid)
+                print(f"Player {request.sid} ready in room {room_code}")
+                print(f"Ready players: {game_state['ready_players']}")
             
             # Check if all players are ready and have roles
-            all_ready = len(game_state['ready_players']) == 2
-            all_roles_chosen = all(player['role'] is not None for player in game_state['players'].values())
+            players_in_room = len(game_state['players'])
+            ready_count = len(game_state['ready_players'])
+            all_roles_chosen = all(player['role'] is not None 
+                                 for player in game_state['players'].values())
             
-            if all_ready and all_roles_chosen:
+            print(f"Players in room: {players_in_room}")
+            print(f"Ready players: {ready_count}")
+            print(f"All roles chosen: {all_roles_chosen}")
+            
+            if ready_count == 2 and all_roles_chosen:
+                print("Starting game!")
                 game_state['game_started'] = True
-                # Generate new game elements when game starts
                 dots, obstacles, powerups = generate_game_elements(game_state)
                 game_state['dots'] = dots
                 game_state['obstacles'] = obstacles
@@ -280,9 +280,14 @@ def handle_ready_to_start(data):
                 emit('game_started', game_state, room=room_code)
             else:
                 emit('waiting_for_players', {
-                    'ready_count': len(game_state['ready_players']),
-                    'total_needed': 2
+                    'ready_count': ready_count,
+                    'total_needed': 2,
+                    'players_ready': game_state['ready_players']
                 }, room=room_code)
+            
+            # Always emit updated game state
+            emit('game_state', game_state, room=room_code)
+            
     except Exception as e:
         print(f"Error in ready_to_start: {str(e)}")
         emit('room_error', {'message': f'Error starting game: {str(e)}'})
