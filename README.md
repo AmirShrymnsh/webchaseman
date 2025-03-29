@@ -17,7 +17,7 @@ A real-time multiplayer chase game where players can join as either a Runner (Pa
 
 ## 🚀 Play Now
 
-Visit [your-railway-url] to play!
+Visit (https://webchaseman-production.up.railway.app/) to play!
 
 ## 🎯 How to Play
 
