@@ -1,10 +1,11 @@
+import os
 from flask import Flask, send_from_directory, request
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import random
 import string
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret!'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'secret!')
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Game rooms state
@@ -179,4 +180,8 @@ def index():
     return send_from_directory('.', 'index.html')
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, host='0.0.0.0', port=5001)
+    port = int(os.getenv('PORT', 5001))
+    socketio.run(app, 
+                debug=os.getenv('DEBUG', 'True').lower() == 'true',
+                host='0.0.0.0',
+                port=port)
